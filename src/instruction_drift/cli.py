@@ -56,7 +56,14 @@ def _experiment_run(args: argparse.Namespace) -> int:
         if args.provider == "mock":
             provider = provider.model_copy(update={"model_id": "mock-scripted-v1"})
         cfg = cfg.model_copy(update={"provider": provider})
-    store, summary = run_experiment(cfg, max_conversations=args.max_conversations)
+    if args.base_url:
+        cfg = cfg.model_copy(update={"provider": cfg.provider.model_copy(
+            update={"base_url": args.base_url})})
+    if args.output_root:
+        cfg = cfg.model_copy(update={"output_root": Path(args.output_root)})
+    budget = args.time_budget_hours * 3600 if args.time_budget_hours else None
+    store, summary = run_experiment(cfg, max_conversations=args.max_conversations,
+                                    offset=args.offset, time_budget_s=budget)
     print(json.dumps(summary, indent=2))
     print(f"run directory: {store.run_dir}")
     return 0
@@ -83,6 +90,12 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--config", required=True)
     run.add_argument("--provider", choices=["mock", "ollama", "openai_compat"])
     run.add_argument("--max-conversations", type=int)
+    run.add_argument("--offset", type=int, default=0,
+                     help="skip the first N valid plans (resume a design across sessions)")
+    run.add_argument("--time-budget-hours", type=float,
+                     help="start no new conversation after this much wall-clock time")
+    run.add_argument("--output-root", help="override config output_root")
+    run.add_argument("--base-url", help="override provider base_url (e.g. a second server)")
     run.set_defaults(func=_experiment_run)
     return parser
 

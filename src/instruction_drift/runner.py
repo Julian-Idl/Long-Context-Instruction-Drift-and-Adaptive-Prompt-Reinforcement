@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from collections import defaultdict
 from pathlib import Path
 
@@ -38,6 +39,7 @@ from instruction_drift.storage import RunStore
 from instruction_drift.tokenization import reference_tokenizer
 
 POLICY_B0 = "B0_no_reinforcement"
+CONTEXT_MARGIN = 1.25  # same margin the Ollama adapter enforces per call
 log = logging.getLogger("instruction_drift.runner")
 
 _USER_TYPE = {
@@ -55,6 +57,10 @@ def build_plans(cfg: ExperimentConfig) -> tuple[list[ConversationPlan], list[Exc
     tok = reference_tokenizer()
     corpus_path = Path(cfg.design.corpus_path)
     corpus = Corpus(corpus_path) if corpus_path.exists() else None
+    expected = cfg.design.corpus_sha256
+    if expected and (corpus is None or corpus.sha256 != expected):
+        raise ValueError(f"corpus at {corpus_path} does not match expected sha256 {expected}")
+    gen = cfg.generation
     plans, excluded = [], []
     for i, spec in enumerate(expand_design(cfg.design, cfg.seed)):
         cid = f"C{i:05d}_{spec.template_id}"
@@ -63,6 +69,16 @@ def build_plans(cfg: ExperimentConfig) -> tuple[list[ConversationPlan], list[Exc
             errors = validate_plan(plan, cfg.design)
         except ValueError as e:
             errors = [str(e)]
+        else:
+            if gen.context_window:
+                # Worst case: every model reply runs to max_output_tokens. The margin
+                # covers tokenizer mismatch on text; reply budgets are already model tokens.
+                text = plan.achieved.total_tokens + 8 * (2 * len(plan.exchanges) + 1)
+                worst = (text * CONTEXT_MARGIN
+                         + (plan.achieved.checkpoint_count + 1) * gen.max_output_tokens)
+                if worst > gen.context_window:
+                    errors.append(f"may exceed context window {gen.context_window} "
+                                  f"(worst case ~{worst:.0f} tokens)")
         if errors:
             excluded.append(ExclusionRecord(conversation_id=cid, spec=spec.model_dump(mode="json"),
                                             errors=errors))
@@ -165,12 +181,21 @@ def run_conversation(plan: ConversationPlan, provider: BaseProvider, store: RunS
 
 
 def run_experiment(cfg: ExperimentConfig, provider: BaseProvider | None = None,
-                   max_conversations: int | None = None) -> tuple[RunStore, dict]:
-    plans, excluded = build_plans(cfg)
-    if max_conversations is not None:
-        plans = plans[:max_conversations]
+                   max_conversations: int | None = None, offset: int = 0,
+                   time_budget_s: float | None = None) -> tuple[RunStore, dict]:
+    """Run plans[offset : offset + max_conversations].
+
+    Plans are deterministic, so a long design can be split across sessions with
+    `offset`; each session is its own run directory. With a time budget, no new
+    conversation starts after the budget is spent and `next_offset` says where to resume.
+    """
+    started = time.monotonic()
+    all_plans, excluded = build_plans(cfg)
+    end = None if max_conversations is None else offset + max_conversations
+    plans = all_plans[offset:end]
     if not plans:
-        raise ValueError(f"no valid conversation plans ({len(excluded)} excluded)")
+        raise ValueError(f"no valid conversation plans at offset {offset} "
+                         f"({len(all_plans)} valid, {len(excluded)} excluded)")
     if provider is None:
         extra = {"replies": {}, "seed": cfg.seed} if cfg.provider.kind == "mock" else {}
         provider = make_provider(cfg.provider, **extra)
@@ -186,7 +211,13 @@ def run_experiment(cfg: ExperimentConfig, provider: BaseProvider | None = None,
 
     by_template: dict[str, list[int]] = defaultdict(lambda: [0, 0])
     totals = {"conversations": 0, "aborted": 0, "checkpoints": 0}
+    stopped_early = False
     for k, plan in enumerate(plans, 1):
+        if time_budget_s is not None and time.monotonic() - started > time_budget_s:
+            stopped_early = True
+            log.warning("time budget spent; stopping before next conversation",
+                        extra={"next_offset": offset + k - 1})
+            break
         stats = run_conversation(plan, provider, store, cfg)
         totals["conversations"] += 1
         totals["aborted"] += stats["aborted"]
@@ -199,7 +230,14 @@ def run_experiment(cfg: ExperimentConfig, provider: BaseProvider | None = None,
     summary = {
         "run_id": store.run_id,
         "is_simulated": provider.kind == "mock",
+        "model_version": provider.model_version(),
+        "valid_plans": len(all_plans),
         "excluded_plans": len(excluded),
+        "plan_offset": offset,
+        "next_offset": offset + totals["conversations"],
+        "complete": offset + totals["conversations"] >= len(all_plans),
+        "stopped_early": stopped_early,
+        "wall_clock_s": round(time.monotonic() - started, 1),
         **totals,
         "per_template": {k: {"scored": s, "violations": v,
                              "violation_rate": v / s if s else None}

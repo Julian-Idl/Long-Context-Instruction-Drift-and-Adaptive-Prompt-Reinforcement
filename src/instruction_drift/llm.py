@@ -136,8 +136,9 @@ class OllamaProvider(BaseProvider):
                 tags = self.client.get(f"{self.base_url}/api/tags").json()["models"]
                 m = next(m for m in tags if m["name"] == self.model_id)
                 det = m.get("details", {})
+                server = self.client.get(f"{self.base_url}/api/version").json().get("version")
                 self._version = (f"{m['digest']} {det.get('parameter_size', '?')} "
-                                 f"{det.get('quantization_level', '?')}")
+                                 f"{det.get('quantization_level', '?')} ollama={server}")
             except (httpx.HTTPError, KeyError, StopIteration, ValueError):
                 return None
         return self._version

@@ -1,0 +1,26 @@
+# E1/E2 drift characterization, B0 (no reinforcement), run inside a Kaggle GPU notebook.
+# Same model weights as the local pilot (Ollama qwen2.5:7b, digest 845dbda0...).
+# Full factorial over the levels below; split across sessions with --offset.
+name: e1_drift_qwen7b
+seed: 20261031
+output_root: results/runs
+provider:
+  kind: ollama
+  model_id: qwen2.5:7b
+  timeout_s: 900
+  max_retries: 3
+generation:
+  temperature: 0.0
+  max_output_tokens: 400
+  seed: 1234
+  context_window: 32768
+design:
+  templates: [FMT_JSON, LANG_PY, LEN_60, NEG_STDLIB, STRUCT_NAMES, BEHAV_ASSUME, COND_CODE, MULTI_LEN_ASSUME]
+  turn_counts: [20, 50, 100]
+  position_ratios: [0.1, 0.5]
+  distractor_densities: [0.0, 0.4, 0.8]
+  conflict_intensities: [0.0, 0.2]
+  task_transition_counts: [0, 2]
+  distractor_tokens_per_exchange: 300
+  checkpoint_interval: 5
+  corpus_sha256: 9c87ca462106cdf63133ddd0e5db7c17a60dcf7e7cc9d8036d30646bad9f5515

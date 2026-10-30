@@ -50,6 +50,7 @@ class DesignConfig(BaseModel):
     replicates: int = Field(default=1, gt=0)
     max_conversations: int | None = Field(default=None, gt=0)
     corpus_path: Path = Path("data/corpus/wikitext103_test.jsonl")
+    corpus_sha256: str | None = None  # set to pin the exact corpus across machines
     position_tolerance: float = 0.05
     density_tolerance: float = 0.05
 

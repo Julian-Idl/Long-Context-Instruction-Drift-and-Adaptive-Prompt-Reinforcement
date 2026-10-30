@@ -20,6 +20,8 @@ def _ollama(handler, retries=2):
 
 
 def _ok_ollama(request):
+    if request.url.path == "/api/version":
+        return httpx.Response(200, json={"version": "0.5.7"})
     if request.url.path == "/api/tags":
         return httpx.Response(200, json={"models": [{"name": "qwen2.5:7b", "digest": "abc",
                                                      "details": {"parameter_size": "7.6B",
@@ -35,7 +37,7 @@ def test_ollama_success_records_usage_and_version():
     res = _ollama(_ok_ollama).generate(MSGS, GenerationParams(seed=7, context_window=4096))
     assert res.error is None and res.text == "hi"
     assert (res.provider_input_tokens, res.provider_output_tokens) == (12, 3)
-    assert res.model_version == "abc 7.6B Q4_K_M"
+    assert res.model_version == "abc 7.6B Q4_K_M ollama=0.5.7"
 
 
 def test_ollama_requires_context_window_and_refuses_overflow():
