@@ -1,0 +1,10 @@
+name: default
+seed: 1234
+output_root: results/runs
+provider:
+  kind: mock
+  model_id: mock-scripted-v1
+generation:
+  temperature: 0.0
+  max_output_tokens: 512
+  seed: 1234

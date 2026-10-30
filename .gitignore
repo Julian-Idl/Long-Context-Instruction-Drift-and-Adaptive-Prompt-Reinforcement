@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.env
+
+# Experiment outputs: raw runs are large and preserved locally, not in git.
+data/
+results/
+artifacts/
+models/
