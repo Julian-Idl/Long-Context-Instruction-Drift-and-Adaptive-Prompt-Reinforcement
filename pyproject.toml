@@ -7,7 +7,7 @@ name = "instruction-drift"
 version = "0.1.0"
 description = "Long-context instruction drift measurement and adaptive prompt reinforcement (research framework)"
 readme = "README.md"
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11,<3.14"
 dependencies = [
     "pydantic>=2.7,<3",
     "pyyaml>=6.0,<7",
