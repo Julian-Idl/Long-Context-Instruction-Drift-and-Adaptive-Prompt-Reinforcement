@@ -81,6 +81,28 @@ def _dataset_build(args: argparse.Namespace) -> int:
     return 0
 
 
+def _predictor_train(args: argparse.Namespace) -> int:
+    from instruction_drift.predictor import MODELS, train
+
+    models = args.models.split(",") if args.models else MODELS
+    board = train(Path(args.dataset), Path(args.out), models=models, seed=args.seed,
+                  calibration=args.calibration, n_boot=args.n_boot)
+    print("validation (calibration and threshold fitted here, so optimistic):")
+    print(json.dumps(board, indent=2))
+    return 0
+
+
+def _predictor_evaluate(args: argparse.Namespace) -> int:
+    from instruction_drift.predictor import evaluate
+
+    if args.split == "test" and not args.final:
+        print("Refusing to touch the test split without --final.", file=sys.stderr)
+        return 1
+    print(json.dumps(evaluate(Path(args.model), Path(args.dataset), args.split,
+                              n_boot=args.n_boot), indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="instruction_drift")
     groups = parser.add_subparsers(dest="group", required=True)
@@ -119,6 +141,23 @@ def build_parser() -> argparse.ArgumentParser:
     b.add_argument("--test-templates", help="comma-separated, for --strategy template")
     b.add_argument("--allow-mixed-models", action="store_true")
     b.set_defaults(func=_dataset_build)
+
+    pr = groups.add_parser("predictor").add_subparsers(dest="command", required=True)
+    t = pr.add_parser("train", help="fit on train, calibrate and pick threshold on validation")
+    t.add_argument("--dataset", required=True)
+    t.add_argument("--out", required=True, help="new directory, one subfolder per model")
+    t.add_argument("--models", help="comma-separated subset of the default model list")
+    t.add_argument("--calibration", choices=["none", "sigmoid", "isotonic"], default="sigmoid")
+    t.add_argument("--seed", type=int, default=0)
+    t.add_argument("--n-boot", type=int, default=1000)
+    t.set_defaults(func=_predictor_train)
+    e = pr.add_parser("evaluate")
+    e.add_argument("--model", required=True, help="one model subfolder")
+    e.add_argument("--dataset", required=True)
+    e.add_argument("--split", choices=["validation", "test"], default="validation")
+    e.add_argument("--final", action="store_true", help="required to evaluate on test")
+    e.add_argument("--n-boot", type=int, default=1000)
+    e.set_defaults(func=_predictor_evaluate)
     return parser
 
 

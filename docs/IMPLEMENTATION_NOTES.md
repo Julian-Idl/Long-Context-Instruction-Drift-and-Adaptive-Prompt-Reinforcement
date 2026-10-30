@@ -194,3 +194,32 @@ template (60/20/20), so every split contains every template. `--strategy templat
 holds out whole templates as the test set (E8). `check_split_integrity` verifies that no
 group or conversation spans two splits. The builder refuses to mix mock and real rows,
 and refuses to mix model versions unless `--allow-mixed-models` is given.
+
+## 10. Predictor (Milestone 5)
+
+`predictor train` fits every model on **train only**, then on **validation only** fits
+the calibrator (Platt `sigmoid` by default, or `isotonic`) and picks the operating
+threshold (maximum F1). Validation metrics are therefore optimistic and labelled so.
+`predictor evaluate --split test` requires `--final`, and every test access is appended
+to `test_access_log.jsonl` in the model folder, so repeated peeking is visible.
+
+| Model | Notes |
+|---|---|
+| `majority` | training base rate for every row |
+| `prior_rate` | the instruction's own prior failure rate; base rate before any history |
+| `rule` | fixed, unfitted: 0.35·conflict now + 0.25·failed last time + 0.25·min(1, tokens since instruction / 8000) + 0.15·distractor ratio |
+| `logreg` | median imputation + missing indicators, standardized, L2 logistic regression |
+| `random_forest` | same imputation, 300 trees, min leaf 5 |
+| `xgboost` | primary; native NaN handling, 300 trees, depth 4, learning rate 0.05 |
+
+Metrics: precision, recall, F1 at the threshold, ROC-AUC, PR-AUC, Brier, ECE (10 equal
+bins), recall at a 20% intervention budget, false-positive intervention rate (share of
+triggered interventions that were unnecessary), and per-category metrics. 95% CIs come
+from a bootstrap over conversation groups. When a split has one class, AUC values are
+reported as `null`, never imputed.
+
+Explainability: XGBoost mean |SHAP| from the booster's native `pred_contribs` (no `shap`
+dependency), random-forest impurity importance, logistic-regression coefficients on
+standardized features. Each model folder holds `model.joblib`, `metadata.json` (feature
+list and schema version, dataset hashes, parameters, library versions, seed, calibration,
+threshold), and `importance.csv`.
