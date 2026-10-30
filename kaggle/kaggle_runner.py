@@ -26,6 +26,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parents[1]
 OUT = Path("/kaggle/working/results")
 DEFAULT_DIGEST = "845dbda0ea48ed749caafd9e6037047aa19acfcfd82e704d7ca97d631a0b697e"
+# Pinned: the server version is part of the recorded model_version, so every session
+# of one experiment must use the same release (verified on Kaggle, smoke run 2026-10-30).
+OLLAMA_VERSION = "0.40.13"
 
 
 def sh(cmd: str, **kw) -> None:
@@ -77,7 +80,8 @@ def main() -> None:
     # 1. Ollama: install, one server per GPU, pull once, pin the exact weights.
     if shutil.which("ollama") is None:
         sh("apt-get -qq update && apt-get -qq install -y zstd > /dev/null")
-        sh("curl -fsSL https://ollama.com/install.sh | sh > /dev/null")
+        sh(f"curl -fsSL https://ollama.com/install.sh"
+           f" | OLLAMA_VERSION={OLLAMA_VERSION} sh > /dev/null")
     ports = [11434 + g for g in range(n_gpu)]
     servers = [start_ollama(g, p) for g, p in enumerate(ports)]
     sh(f"OLLAMA_HOST=127.0.0.1:{ports[0]} ollama pull {args.model}")
@@ -151,7 +155,7 @@ def main() -> None:
     archive = shutil.make_archive(f"/kaggle/working/{out_root.name}_{int(t0)}", "zip", out_root)
     print(f"\nresults archive: {archive}")
     if args.smoke:
-        print("Smoke test finished. Set SMOKE = False and run again for the real session.")
+        print("Smoke test finished. Run again without --smoke for the real session.")
     elif remaining:
         print(f"\nNOT FINISHED. Next session: RANGES = \"{','.join(remaining)}\"")
     else:
