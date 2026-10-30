@@ -13,7 +13,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from instruction_drift.schemas import ConflictKind, GenerationParams
+from instruction_drift.schemas import B0_POLICY, Action, ConflictKind, GenerationParams
 
 _SECRET_KEY = re.compile(r"(api[_-]?key|secret|token|password)$", re.IGNORECASE)
 # These names describe token counts, not credentials.
@@ -55,6 +55,29 @@ class DesignConfig(BaseModel):
     density_tolerance: float = 0.05
 
 
+class PolicyConfig(BaseModel):
+    """A reinforcement policy. See docs/IMPLEMENTATION_NOTES.md §11."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    name: str = Field(pattern=r"^[A-Za-z0-9_\-]+$")
+    kind: Literal["none", "fixed_interval", "threshold"]
+    interval: int | None = Field(default=None, gt=0)
+    action: Action = Action.FULL_REINFORCEMENT
+    risk_source: Literal["rule", "model"] = "rule"
+    model_path: Path | None = None
+    # Risk band edges: below [0] and [1] no action; [1]-[2] compressed; [2]-[3] selective;
+    # above [3] top_action. A single threshold uses `single_threshold` instead.
+    bands: list[float] = [0.2, 0.4, 0.6, 0.8]
+    single_threshold: float | None = Field(default=None, ge=0, le=1)
+    top_action: Action = Action.FULL_REINFORCEMENT
+    cooldown_exchanges: int = Field(default=0, ge=0)
+    max_reinforcement_tokens: int | None = Field(default=None, gt=0)
+    min_priority: float = Field(default=0.0, ge=0, le=1)
+
+
+B0 = PolicyConfig(name=B0_POLICY, kind="none")
+
+
 class ExperimentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(pattern=r"^[A-Za-z0-9_\-]+$")
@@ -64,6 +87,7 @@ class ExperimentConfig(BaseModel):
     generation: GenerationParams = GenerationParams()
     design: DesignConfig | None = None
     system_prompt: str = "You are a helpful assistant."
+    policies: list[PolicyConfig] = [B0]
 
 
 class ConfigError(ValueError):

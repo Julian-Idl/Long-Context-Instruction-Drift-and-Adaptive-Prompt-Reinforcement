@@ -120,7 +120,7 @@ def build_parser() -> argparse.ArgumentParser:
     gen.set_defaults(func=_data_generate)
 
     exp = groups.add_parser("experiment").add_subparsers(dest="command", required=True)
-    run = exp.add_parser("run", help="run B0 (no reinforcement) on the configured provider")
+    run = exp.add_parser("run", help="run every configured policy on the same plans")
     run.add_argument("--config", required=True)
     run.add_argument("--provider", choices=["mock", "ollama", "openai_compat"])
     run.add_argument("--max-conversations", type=int)

@@ -12,6 +12,7 @@ from enum import StrEnum
 from pydantic import BaseModel, ConfigDict, Field
 
 SCHEMA_VERSION = "1.0"
+B0_POLICY = "B0_no_reinforcement"
 
 
 def utc_now() -> str:
@@ -131,6 +132,7 @@ class TurnRecord(Record):
     is_checkpoint: bool = False
     is_scripted: bool = True
     source_template_id: str
+    policy_name: str = B0_POLICY
 
 
 class GenerationParams(BaseModel):
@@ -232,7 +234,9 @@ class ComplianceRecord(Record):
 
 class ControllerDecision(Record):
     run_id: str
-    checkpoint_id: str
+    conversation_id: str
+    exchange_index: int = Field(ge=0)
+    checkpoint_id: str  # "<conversation>_X<exchange>" when not a checkpoint
     instruction_id: str
     predicted_failure_probability: float | None = Field(default=None, ge=0.0, le=1.0)
     instruction_priority: float

@@ -223,3 +223,67 @@ dependency), random-forest impurity importance, logistic-regression coefficients
 standardized features. Each model folder holds `model.joblib`, `metadata.json` (feature
 list and schema version, dataset hashes, parameters, library versions, seed, calibration,
 threshold), and `importance.csv`.
+
+## 11. Reinforcement (Milestone 6)
+
+**Delivery.** A reminder is prepended to the current user message, separated by a blank
+line, and stays in the history. A system message placed mid-conversation is not used:
+Ollama chat templates can drop or merge it, which would silently lose the intervention.
+`PromptRecord` logs the role (`user`), the insert index, and both the reminder tokens in
+context and the final prompt size. The reminder is also logged as its own
+`TurnRecord` (`content_type=reinforcement`), so the unmodified conversation can be
+rebuilt.
+
+**Reminder text** is deterministic (`reinforcement.py`, version 1.0):
+
+| Action | Text |
+|---|---|
+| FULL | original text of every reinforceable instruction group |
+| SELECTIVE | original text of the at-risk instructions' groups; a group is restated whole, never cut mid-sentence |
+| COMPRESSED | hand-written `compressed_text` of the at-risk instructions |
+| POLICY_CHECKPOINT | numbered list of normalized text, priority, and the condition for conditional rules |
+
+Superseded, expired and ambiguous instructions are never restated.
+
+**Policies.**
+
+| Name (E3 config) | Kind | Acts at |
+|---|---|---|
+| B0 | none | never |
+| B1 / B2 / B3 | fixed interval 1 / 5 / 10, FULL | every N exchanges after the instruction, including non-checkpoint exchanges |
+| B4 | fixed interval 10, POLICY_CHECKPOINT | same |
+| B5 | single threshold 0.5 on the fixed rule score, cooldown 5 | checkpoints |
+| P1 | risk bands on the calibrated E1 predictor, cooldown 5, budget 2000 tokens | checkpoints |
+
+P1 bands: below 0.4 no action; 0.4 to 0.6 compressed; 0.6 to 0.8 selective; above 0.8
+full. Cooldown blocks an instruction reinforced within the last N exchanges. When the
+per-conversation token budget would be exceeded, the reminder is first downgraded to
+compressed, then skipped; both are written to the decision reason.
+
+**Causality.** At a checkpoint the controller computes features from the realized
+history plus the current user message, before any reminder at that exchange. Outcomes
+and reminders at exchange k enter the instruction history only after the decision at k.
+Every candidate's decision, probability, reason, and cooldown flag go to
+`processed/decisions.jsonl`.
+
+**Cost accounting.** `reminder_tokens_inserted` counts each reminder once.
+`reminder_tokens_billed` adds the reminder tokens present in the context at every model
+call, which is the real input-token overhead, because earlier reminders are re-sent on
+every later call. Both are in `summary.json` under `per_policy`.
+
+**Matched design.** Every policy runs on each plan before the next plan starts, so a
+time-budget stop never leaves an unmatched plan. The context-window pre-check budgets
+for the most verbose policy, so a plan is excluded for all arms or none. In E3 this
+excludes 28 of 128 plans, mostly 100-turn high-density ones, because B1 reminds every
+turn. The high-length, high-density cell is therefore under-represented, and results
+must be read with that in mind. Only the B0 arm feeds `dataset build`, since the
+predictor was trained on prefixes without reminders.
+
+**Limitations.**
+- P1 sees non-empty reinforcement-history features that were always empty in the B0
+  training data (distribution shift). Its probabilities under reinforcement are
+  therefore less reliable than on the E1 test split.
+- The mock provider does not model any effect of reminders. Mock runs test plumbing
+  only and say nothing about reinforcement benefit.
+- E3 uses a new seed, so its conversations are unseen by the predictor. Primary
+  comparisons are fixed in the E3 config header before any run.

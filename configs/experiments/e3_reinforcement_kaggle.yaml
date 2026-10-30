@@ -1,0 +1,43 @@
+# E3 matched reinforcement comparison. Every policy runs on the same plans.
+# A different seed from E1, so these conversations were never seen by the predictor.
+# Run only after the E1 predictor exists at the P1 model_path below.
+#
+# Pre-registered primary comparisons (docs/IMPLEMENTATION_NOTES.md section 11):
+#   1. P1 vs B0: per-instruction violation rate.
+#   2. P1 vs B1: violation rate and billed reminder tokens.
+# All other contrasts are exploratory.
+name: e3_reinforcement_qwen7b
+seed: 20261101
+output_root: results/runs
+provider:
+  kind: ollama
+  model_id: qwen2.5:7b
+  timeout_s: 900
+  max_retries: 3
+generation:
+  temperature: 0.0
+  max_output_tokens: 400
+  seed: 1234
+  context_window: 32768
+design:
+  templates: [FMT_JSON, LANG_PY, LEN_60, NEG_STDLIB, STRUCT_NAMES, BEHAV_ASSUME, COND_CODE, MULTI_LEN_ASSUME]
+  turn_counts: [50, 100]
+  position_ratios: [0.1]
+  distractor_densities: [0.4, 0.8]
+  conflict_intensities: [0.0, 0.2]
+  task_transition_counts: [2]
+  distractor_tokens_per_exchange: 300
+  checkpoint_interval: 5
+  replicates: 2
+  corpus_sha256: 9c87ca462106cdf63133ddd0e5db7c17a60dcf7e7cc9d8036d30646bad9f5515
+policies:
+  - {name: B0_no_reinforcement, kind: none}
+  - {name: B1_every_turn, kind: fixed_interval, interval: 1}
+  - {name: B2_every_5, kind: fixed_interval, interval: 5}
+  - {name: B3_every_10, kind: fixed_interval, interval: 10}
+  - {name: B4_summary_10, kind: fixed_interval, interval: 10, action: POLICY_CHECKPOINT}
+  - {name: B5_rule_threshold, kind: threshold, risk_source: rule, single_threshold: 0.5,
+     cooldown_exchanges: 5}
+  - {name: P1_predictive, kind: threshold, risk_source: model,
+     model_path: artifacts/models/e1_qwen7b/xgboost, bands: [0.2, 0.4, 0.6, 0.8],
+     cooldown_exchanges: 5, max_reinforcement_tokens: 2000}

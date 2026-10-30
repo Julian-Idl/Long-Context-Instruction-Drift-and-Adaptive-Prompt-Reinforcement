@@ -29,6 +29,7 @@ from instruction_drift.features import (
 from instruction_drift.generation import ConversationPlan
 from instruction_drift.registry import InstructionRegistry
 from instruction_drift.schemas import (
+    B0_POLICY,
     CheckpointRecord,
     ComplianceRecord,
     ResponseRecord,
@@ -50,14 +51,18 @@ def rows_from_run(run_dir: Path) -> pd.DataFrame:
     manifest = store.manifest()
     plans = {p.conversation_id: p for p in store.read("plans", ConversationPlan)}
     turns: dict[str, list[TurnRecord]] = defaultdict(list)
+    # Training rows come from the no-reinforcement arm only: other arms' prefixes contain
+    # reminders the B0-trained features never saw.
     for t in store.read("conversations", TurnRecord):
-        turns[t.conversation_id].append(t)
+        if t.policy_name == B0_POLICY:
+            turns[t.conversation_id].append(t)
     labels: dict[tuple[str, str], ComplianceRecord] = {
         (c.checkpoint_id, c.instruction_id): c for c in store.read("compliance", ComplianceRecord)}
     responses = {r.checkpoint_id: r for r in store.read("responses", ResponseRecord)}
     checkpoints: dict[str, list[CheckpointRecord]] = defaultdict(list)
     for c in store.read("checkpoints", CheckpointRecord):
-        checkpoints[c.conversation_id].append(c)
+        if c.policy_name == B0_POLICY:
+            checkpoints[c.conversation_id].append(c)
 
     rows = []
     for cid, cps in checkpoints.items():
