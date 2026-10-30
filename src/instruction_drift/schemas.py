@@ -187,6 +187,31 @@ class ResponseRecord(Record):
     created_at: str = Field(default_factory=utc_now)
 
 
+class CheckpointRecord(Record):
+    """One target-model call: the point where risk would be predicted and labels observed."""
+
+    run_id: str
+    conversation_id: str
+    checkpoint_id: str
+    exchange_index: int = Field(ge=0)
+    policy_name: str
+    task_id: str | None
+    topic: str | None
+    task_tags: list[str]
+    conflict_kind: ConflictKind | None
+    prompt_token_count: int = Field(ge=0)
+    response_id: str
+    error: str | None = None
+
+
+class ExclusionRecord(Record):
+    """A planned conversation that failed pre-flight validation and was not run."""
+
+    conversation_id: str
+    spec: dict
+    errors: list[str]
+
+
 class ComplianceRecord(Record):
     run_id: str
     conversation_id: str

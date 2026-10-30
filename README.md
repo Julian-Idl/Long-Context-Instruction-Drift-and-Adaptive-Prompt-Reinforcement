@@ -53,6 +53,30 @@ long_context_instruction_drift/
 └── results/
 ```
 
+## Setup and usage
+
+Requires Python 3.11 and [uv](https://docs.astral.sh/uv/). Local runs need [Ollama](https://ollama.com).
+
+```bash
+uv sync                                   # create .venv with pinned dependencies
+uv run python scripts/fetch_corpus.py     # distractor corpus (WikiText-103 test, CC BY-SA)
+uv run pytest                             # test suite (no network, no model)
+
+# Plan and validate conversations without calling any model
+uv run python -m instruction_drift.cli data generate --config configs/experiments/pilot.yaml
+
+# End-to-end run on the simulated provider (results/runs/mock/, never evidence)
+uv run python -m instruction_drift.cli experiment run --config configs/experiments/pilot.yaml --provider mock
+
+# Real local run (ollama pull qwen2.5:7b first)
+uv run python -m instruction_drift.cli experiment run --config configs/experiments/pilot.yaml
+```
+
+Hosted models use `provider.kind: openai_compat` with `base_url` and `api_key_env`; the
+key goes in an environment variable (see `.env.example`), never in YAML.
+
+Implementation decisions, definitions, and known limits: [`docs/IMPLEMENTATION_NOTES.md`](docs/IMPLEMENTATION_NOTES.md).
+
 ## Important scope boundaries
 
 - This is a research framework, not a production prompt-management product.

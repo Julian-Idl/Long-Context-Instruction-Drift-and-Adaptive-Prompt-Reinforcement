@@ -1,0 +1,25 @@
+# Local pilot: validates generation, evaluators, token accounting and the Ollama path.
+# Not a powered experiment. 8 templates x 2 x 2 x 2 x 2 = 128 cells, subsampled.
+name: pilot
+seed: 20261030
+output_root: results/runs
+provider:
+  kind: ollama
+  model_id: qwen2.5:7b
+  timeout_s: 600
+  max_retries: 2
+generation:
+  temperature: 0.0
+  max_output_tokens: 400
+  seed: 1234
+  context_window: 8192
+design:
+  templates: [FMT_JSON, LANG_PY, LEN_60, NEG_STDLIB, STRUCT_NAMES, BEHAV_ASSUME, COND_CODE, MULTI_LEN_ASSUME]
+  turn_counts: [20]
+  position_ratios: [0.1, 0.5]
+  distractor_densities: [0.0, 0.4]
+  conflict_intensities: [0.0, 0.2]
+  task_transition_counts: [0, 2]
+  distractor_tokens_per_exchange: 250
+  checkpoint_interval: 5
+  max_conversations: 32

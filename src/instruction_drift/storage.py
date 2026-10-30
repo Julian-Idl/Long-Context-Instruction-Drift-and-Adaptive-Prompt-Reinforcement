@@ -27,6 +27,9 @@ from instruction_drift.schemas import utc_now
 M = TypeVar("M", bound=BaseModel)
 
 STREAMS = {
+    "plans": "raw/conversation_plans.jsonl",
+    "exclusions": "raw/exclusions.jsonl",
+    "checkpoints": "raw/checkpoints.jsonl",
     "conversations": "raw/conversations.jsonl",
     "instructions": "raw/instructions.jsonl",
     "lifecycle": "raw/lifecycle_events.jsonl",

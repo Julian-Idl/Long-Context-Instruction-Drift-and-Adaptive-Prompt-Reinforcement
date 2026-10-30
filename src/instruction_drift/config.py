@@ -13,7 +13,7 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from instruction_drift.schemas import GenerationParams
+from instruction_drift.schemas import ConflictKind, GenerationParams
 
 _SECRET_KEY = re.compile(r"(api[_-]?key|secret|token|password)$", re.IGNORECASE)
 # These names describe token counts, not credentials.
@@ -33,6 +33,27 @@ class ProviderConfig(BaseModel):
     requests_per_minute: float | None = Field(default=None, gt=0)
 
 
+class DesignConfig(BaseModel):
+    """Factor levels; the run uses their product (optionally a seeded random subset)."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    templates: list[str] = Field(min_length=1)
+    turn_counts: list[int] = Field(min_length=1)
+    position_ratios: list[float] = Field(min_length=1)
+    distractor_densities: list[float] = Field(min_length=1)
+    conflict_intensities: list[float] = [0.0]
+    conflict_kinds: list[ConflictKind] = [
+        ConflictKind.UNAUTHORIZED_CONTRADICTION, ConflictKind.UNTRUSTED_QUOTE]
+    task_transition_counts: list[int] = [0]
+    distractor_tokens_per_exchange: int = Field(default=300, gt=0)
+    checkpoint_interval: int = Field(default=5, gt=0)
+    replicates: int = Field(default=1, gt=0)
+    max_conversations: int | None = Field(default=None, gt=0)
+    corpus_path: Path = Path("data/corpus/wikitext103_test.jsonl")
+    position_tolerance: float = 0.05
+    density_tolerance: float = 0.05
+
+
 class ExperimentConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
     name: str = Field(pattern=r"^[A-Za-z0-9_\-]+$")
@@ -40,7 +61,8 @@ class ExperimentConfig(BaseModel):
     output_root: Path = Path("results/runs")
     provider: ProviderConfig
     generation: GenerationParams = GenerationParams()
-    design: dict[str, Any] = Field(default_factory=dict)
+    design: DesignConfig | None = None
+    system_prompt: str = "You are a helpful assistant."
 
 
 class ConfigError(ValueError):
