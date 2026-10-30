@@ -69,6 +69,18 @@ def _experiment_run(args: argparse.Namespace) -> int:
     return 0
 
 
+def _dataset_build(args: argparse.Namespace) -> int:
+    from instruction_drift.dataset import build_dataset
+
+    tests = args.test_templates.split(",") if args.test_templates else None
+    manifest = build_dataset([Path(r) for r in args.runs], Path(args.out), seed=args.seed,
+                             strategy=args.strategy, test_templates=tests,
+                             allow_mixed_models=args.allow_mixed_models)
+    print(json.dumps({k: manifest[k] for k in ("rows", "positives", "groups", "is_simulated",
+                                               "model_versions")}, indent=2))
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="instruction_drift")
     groups = parser.add_subparsers(dest="group", required=True)
@@ -97,6 +109,16 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument("--output-root", help="override config output_root")
     run.add_argument("--base-url", help="override provider base_url (e.g. a second server)")
     run.set_defaults(func=_experiment_run)
+
+    ds = groups.add_parser("dataset").add_subparsers(dest="command", required=True)
+    b = ds.add_parser("build", help="checkpoint-level feature rows with grouped splits")
+    b.add_argument("--runs", nargs="+", required=True, help="run directories")
+    b.add_argument("--out", required=True, help="new output directory")
+    b.add_argument("--seed", type=int, default=0)
+    b.add_argument("--strategy", choices=["conversation", "template"], default="conversation")
+    b.add_argument("--test-templates", help="comma-separated, for --strategy template")
+    b.add_argument("--allow-mixed-models", action="store_true")
+    b.set_defaults(func=_dataset_build)
     return parser
 
 

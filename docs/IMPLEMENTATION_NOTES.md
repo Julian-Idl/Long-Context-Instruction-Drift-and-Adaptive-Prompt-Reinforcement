@@ -150,3 +150,47 @@ labels/compliance.jsonl
   `repeated_content_ratio` should capture this, and larger banks are a planned upgrade.
 - Distractor acknowledgements are a fixed sentence (rendered per template).
 - Mock violation rates are arbitrary by design.
+
+## 9. Features and dataset (Milestone 4)
+
+One row is one **applicable** instruction at one checkpoint with a defined label
+(`next_response_violation = 1 - compliance`). Rows where the evaluator returned
+not-evaluable are dropped, not counted as compliant.
+
+**Causality contract** (`features.extract_features`, enforced by checks and tests):
+inputs are the realized, unreinforced turns of exchanges `0..k-1` plus the user message
+of exchange `k`; generator metadata for those exchanges only; the instruction record;
+outcomes from strictly earlier checkpoints; reinforcements strictly before `k` (the
+controller acts after features are computed). Passing anything later raises. The
+dataset builder appends the outcome at `k` to the history only after every row at `k`
+has been built.
+
+**Not features**: planned turn count, planned total tokens, planned position ratio and
+planned density are computed from the whole planned conversation, including turns that
+have not happened yet. They are kept as `meta_*` columns for stratified analysis and
+must never be used for training.
+
+Definitions that the specification left open:
+
+| Feature | Definition |
+|---|---|
+| `instruction_position_ratio` | instruction start / current realized context tokens (shrinks as context grows) |
+| `distance_to_current_task_tokens` | tokens from the instruction start to the start of the current user message |
+| `distractor_token_ratio` | distractor exchange tokens / realized tokens excluding system prompt, so far |
+| `repeated_content_ratio` | tokens of user messages whose exact text appeared earlier / all user tokens |
+| `code_char_ratio` | characters inside code fences / all characters (characters, to avoid re-tokenizing) |
+| `constraint_count` | atomic instructions in the same group |
+| `recent_conflict_count` | conflict exchanges among the last 5 exchanges, current included |
+| `turns_since_last_failure` etc. | NaN until the event first happens; models must handle NaN explicitly |
+
+`instruction_complexity_score` from the specification is not implemented: no definition
+was agreed, and `instruction_word_count` plus `constraint_count` are reported instead.
+`topic_count` is omitted for the same reason.
+
+**Splits**: the unit is the conversation plan (`group_key` = template + plan seed), so
+every checkpoint of a conversation, and every rerun of the same plan under another
+policy or model, falls in one split. The default strategy shuffles groups within each
+template (60/20/20), so every split contains every template. `--strategy template`
+holds out whole templates as the test set (E8). `check_split_integrity` verifies that no
+group or conversation spans two splits. The builder refuses to mix mock and real rows,
+and refuses to mix model versions unless `--allow-mixed-models` is given.
