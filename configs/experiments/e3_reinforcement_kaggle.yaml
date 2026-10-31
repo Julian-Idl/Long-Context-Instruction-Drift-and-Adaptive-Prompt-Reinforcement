@@ -37,7 +37,7 @@ policies:
   - {name: B3_every_10, kind: fixed_interval, interval: 10}
   - {name: B4_summary_10, kind: fixed_interval, interval: 10, action: POLICY_CHECKPOINT}
   - {name: B5_rule_threshold, kind: threshold, risk_source: rule, single_threshold: 0.5,
-     cooldown_exchanges: 5}
+     cooldown_exchanges: 2}
   - {name: P1_predictive, kind: threshold, risk_source: model,
      model_path: artifacts/models/e1_qwen7b/xgboost, bands: [0.2, 0.4, 0.6, 0.8],
-     cooldown_exchanges: 5, max_reinforcement_tokens: 2000}
+     cooldown_exchanges: 2, max_reinforcement_tokens: 2000}

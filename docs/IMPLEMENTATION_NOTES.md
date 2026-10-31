@@ -252,8 +252,8 @@ Superseded, expired and ambiguous instructions are never restated.
 | B0 | none | never |
 | B1 / B2 / B3 | fixed interval 1 / 5 / 10, FULL | every N exchanges after the instruction, including non-checkpoint exchanges |
 | B4 | fixed interval 10, POLICY_CHECKPOINT | same |
-| B5 | single threshold 0.5 on the fixed rule score, cooldown 5 | checkpoints |
-| P1 | risk bands on the calibrated E1 predictor, cooldown 5, budget 2000 tokens | checkpoints |
+| B5 | single threshold 0.5 on the fixed rule score, cooldown 2 | checkpoints |
+| P1 | risk bands on the calibrated E1 predictor, cooldown 2, budget 2000 tokens | checkpoints |
 
 P1 bands: below 0.4 no action; 0.4 to 0.6 compressed; 0.6 to 0.8 selective; above 0.8
 full. Cooldown blocks an instruction reinforced within the last N exchanges. When the
@@ -287,3 +287,11 @@ predictor was trained on prefixes without reminders.
   only and say nothing about reinforcement benefit.
 - E3 uses a new seed, so its conversations are unseen by the predictor. Primary
   comparisons are fixed in the E3 config header before any run.
+
+**Amendment (2026-10-31, before any E3 result was seen).** The B5 and P1 cooldown was
+reduced from 5 to 2 exchanges. A local demo run (different seed and config, not E3
+data) showed the 5-exchange cooldown blocking a reminder at the second of two close
+high-risk checkpoints (predicted risk 0.92 and 0.97, both followed by violations),
+because checkpoints are 2 to 4 exchanges apart. The first E3 launch was stopped after
+about one hour and its partial output discarded unread. A cooldown of 2 still prevents
+reminders at adjacent exchanges.
