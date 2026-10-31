@@ -1,0 +1,213 @@
+{
+  "runs": [
+    "results\\kaggle\\results_1793425945\\ollama\\e3_reinforcement_qwen7b_20261031T055233Z_157973",
+    "results\\kaggle\\results_1793425945\\ollama\\e3_reinforcement_qwen7b_20261031T055233Z_8dc16d"
+  ],
+  "seed": 0,
+  "per_policy": {
+    "B0_no_reinforcement": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 432,
+      "violation_rate_pooled": 0.25145518044237486,
+      "violation_rate_plan_mean": 0.21780447188912416,
+      "violation_rate_ci95": [
+        0.16770300977342228,
+        0.2692409915653736
+      ],
+      "billed_reminder_tokens_per_plan": 0.0,
+      "billed_share_of_prompt_tokens": 0.0,
+      "by_conflict": {
+        "0.0": 0.014511873350923483,
+        "0.2": 0.43854166666666666
+      }
+    },
+    "B1_every_turn": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 138,
+      "violation_rate_pooled": 0.08032596041909197,
+      "violation_rate_plan_mean": 0.07228894868781098,
+      "violation_rate_ci95": [
+        0.04554193789883425,
+        0.10288071952766055
+      ],
+      "billed_reminder_tokens_per_plan": 17106.0,
+      "billed_share_of_prompt_tokens": 0.18687363983771074,
+      "by_conflict": {
+        "0.0": 0.0013192612137203166,
+        "0.2": 0.14270833333333333
+      }
+    },
+    "B2_every_5": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 206,
+      "violation_rate_pooled": 0.119906868451688,
+      "violation_rate_plan_mean": 0.11056403296887413,
+      "violation_rate_ci95": [
+        0.07751845251467064,
+        0.14536569081830902
+      ],
+      "billed_reminder_tokens_per_plan": 3341.31,
+      "billed_share_of_prompt_tokens": 0.042194176481069504,
+      "by_conflict": {
+        "0.0": 0.0013192612137203166,
+        "0.2": 0.21354166666666666
+      }
+    },
+    "B3_every_10": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 282,
+      "violation_rate_pooled": 0.16414435389988358,
+      "violation_rate_plan_mean": 0.1498318289222784,
+      "violation_rate_ci95": [
+        0.11082636323934338,
+        0.19232461187756464
+      ],
+      "billed_reminder_tokens_per_plan": 1548.39,
+      "billed_share_of_prompt_tokens": 0.019568828338535838,
+      "by_conflict": {
+        "0.0": 0.00395778364116095,
+        "0.2": 0.290625
+      }
+    },
+    "B4_summary_10": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 275,
+      "violation_rate_pooled": 0.160069848661234,
+      "violation_rate_plan_mean": 0.14406826750984453,
+      "violation_rate_ci95": [
+        0.10395537821353205,
+        0.1847762980470219
+      ],
+      "billed_reminder_tokens_per_plan": 1799.9,
+      "billed_share_of_prompt_tokens": 0.022598908361859762,
+      "by_conflict": {
+        "0.0": 0.002638522427440633,
+        "0.2": 0.284375
+      }
+    },
+    "B5_rule_threshold": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 194,
+      "violation_rate_pooled": 0.11292200232828871,
+      "violation_rate_plan_mean": 0.11095096852311094,
+      "violation_rate_ci95": [
+        0.07964141685625005,
+        0.14591364341081545
+      ],
+      "billed_reminder_tokens_per_plan": 772.06,
+      "billed_share_of_prompt_tokens": 0.009717738012270334,
+      "by_conflict": {
+        "0.0": 0.0158311345646438,
+        "0.2": 0.18958333333333333
+      }
+    },
+    "P1_predictive": {
+      "plans": 100,
+      "checks": 1718,
+      "violations": 179,
+      "violation_rate_pooled": 0.10419091967403958,
+      "violation_rate_plan_mean": 0.1010109165956461,
+      "violation_rate_ci95": [
+        0.0716863077316479,
+        0.1324350213281474
+      ],
+      "billed_reminder_tokens_per_plan": 903.96,
+      "billed_share_of_prompt_tokens": 0.01140406386154652,
+      "by_conflict": {
+        "0.0": 0.022427440633245383,
+        "0.2": 0.16875
+      }
+    }
+  },
+  "primary": {
+    "P1_vs_B0_violation": {
+      "metric": "viol_rate",
+      "mean_difference": -0.11679355529347803,
+      "ci95": [
+        -0.1560480255540487,
+        -0.078968591212372
+      ],
+      "plans_better": 45,
+      "plans_worse": 11,
+      "plans_tied": 44,
+      "wilcoxon_p": 1.7778137852658915e-07,
+      "holm_p": 3.555627570531783e-07
+    },
+    "P1_vs_B1_violation": {
+      "metric": "viol_rate",
+      "mean_difference": 0.028721967907835117,
+      "ci95": [
+        0.008726677859125339,
+        0.04953156808854735
+      ],
+      "plans_better": 16,
+      "plans_worse": 32,
+      "plans_tied": 52,
+      "wilcoxon_p": 0.012861248776978569,
+      "holm_p": 0.012861248776978569
+    },
+    "P1_vs_B1_billed_tokens": {
+      "metric": "billed",
+      "mean_difference": -16202.04,
+      "ci95": [
+        -18628.25175,
+        -13862.294000000002
+      ],
+      "plans_better": 100,
+      "plans_worse": 0,
+      "plans_tied": 0,
+      "wilcoxon_p": 3.894582001156701e-18,
+      "holm_p": 1.1683746003470102e-17
+    }
+  },
+  "exploratory_vs_B0": {
+    "B1_every_turn_vs_B0_violation": {
+      "mean_difference": -0.14551552320131314,
+      "ci95": [
+        -0.18437118848273715,
+        -0.11024593431621445
+      ]
+    },
+    "B2_every_5_vs_B0_violation": {
+      "mean_difference": -0.10724043892025,
+      "ci95": [
+        -0.13892081257474492,
+        -0.07633541426136746
+      ]
+    },
+    "B3_every_10_vs_B0_violation": {
+      "mean_difference": -0.06797264296684576,
+      "ci95": [
+        -0.09635717134478108,
+        -0.03850844300730437
+      ]
+    },
+    "B4_summary_10_vs_B0_violation": {
+      "mean_difference": -0.07373620437927958,
+      "ci95": [
+        -0.09924714890312161,
+        -0.04919303438729511
+      ]
+    },
+    "B5_rule_threshold_vs_B0_violation": {
+      "mean_difference": -0.10685350336601317,
+      "ci95": [
+        -0.14004989508238802,
+        -0.07369204028251825
+      ]
+    },
+    "P1_predictive_vs_B0_violation": {
+      "mean_difference": -0.11679355529347803,
+      "ci95": [
+        -0.1543706508200442,
+        -0.07980885721092826
+      ]
+    }
+  }
+}
