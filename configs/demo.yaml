@@ -1,0 +1,33 @@
+# Presentation demo: one short conversation, live. Separate output root, so demo runs
+# never mix with experiment data.
+#   python -m instruction_drift.cli demo --provider mock                 (instant, simulated)
+#   python -m instruction_drift.cli demo --provider ollama --policy P1_predictive
+name: demo
+seed: 7
+output_root: results/demo
+provider:
+  kind: ollama
+  model_id: qwen2.5:7b
+  timeout_s: 300
+  max_retries: 1
+generation:
+  temperature: 0.0
+  max_output_tokens: 250
+  seed: 1234
+  context_window: 8192
+design:
+  templates: [LANG_PY]
+  turn_counts: [20]
+  position_ratios: [0.1]
+  distractor_densities: [0.4]
+  conflict_intensities: [0.2]
+  conflict_kinds: [unauthorized_contradiction]
+  distractor_tokens_per_exchange: 150
+  corpus_sha256: 9c87ca462106cdf63133ddd0e5db7c17a60dcf7e7cc9d8036d30646bad9f5515
+policies:
+  - {name: B0_no_reinforcement, kind: none}
+  - {name: B5_rule_threshold, kind: threshold, risk_source: rule, single_threshold: 0.5,
+     cooldown_exchanges: 5}
+  - {name: P1_predictive, kind: threshold, risk_source: model,
+     model_path: artifacts/models/e1_qwen7b/xgboost, bands: [0.2, 0.4, 0.6, 0.8],
+     cooldown_exchanges: 5, max_reinforcement_tokens: 2000}

@@ -200,3 +200,21 @@ def test_context_check_budgets_for_reminders(tmp_path):
 def test_run_store_reads_policy_runs(matched_run):
     store, _ = matched_run
     assert RunStore.open(store.run_dir).manifest()["is_simulated"] is True
+
+
+def test_demo_prints_a_live_conversation(tmp_path):
+    from instruction_drift.config import load_config
+    from instruction_drift.demo import run_demo
+
+    cfg = load_config("configs/demo.yaml")
+    cfg = cfg.model_copy(update={
+        "output_root": tmp_path,
+        "provider": cfg.provider.model_copy(update={"kind": "mock", "model_id": "mock"}),
+        "design": cfg.design.model_copy(update={"corpus_path": tmp_path / "none.jsonl",
+                                                "corpus_sha256": None,
+                                                "distractor_densities": [0.0]})})
+    lines = []
+    stats = run_demo(cfg, "B5_rule_threshold", out=lines.append)
+    text = " | ".join(lines)
+    assert "SIMULATED" in text and "CHECKPOINT" in text and "Predicted P(violation)" in text
+    assert text.count("PASS") + text.count("FAIL") == stats["scored"]

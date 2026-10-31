@@ -103,6 +103,21 @@ def _predictor_evaluate(args: argparse.Namespace) -> int:
     return 0
 
 
+def _demo(args: argparse.Namespace) -> int:
+    from instruction_drift.demo import run_demo
+
+    cfg = load_config(args.config)
+    if args.provider:
+        update = {"kind": args.provider}
+        if args.provider == "mock":
+            update["model_id"] = "mock-scripted-v1"
+        cfg = cfg.model_copy(update={"provider": cfg.provider.model_copy(update=update)})
+    policy = args.policy or ("B5_rule_threshold" if cfg.provider.kind == "mock"
+                             else "P1_predictive")
+    run_demo(cfg, policy, args.plan)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="instruction_drift")
     groups = parser.add_subparsers(dest="group", required=True)
@@ -158,6 +173,13 @@ def build_parser() -> argparse.ArgumentParser:
     e.add_argument("--final", action="store_true", help="required to evaluate on test")
     e.add_argument("--n-boot", type=int, default=1000)
     e.set_defaults(func=_predictor_evaluate)
+
+    dm = groups.add_parser("demo", help="print one conversation live, step by step")
+    dm.add_argument("--config", default="configs/demo.yaml")
+    dm.add_argument("--provider", choices=["mock", "ollama", "openai_compat"])
+    dm.add_argument("--policy", help="default: P1_predictive (real) or B5_rule_threshold (mock)")
+    dm.add_argument("--plan", type=int, help="plan index (default: first with a conflict)")
+    dm.set_defaults(func=_demo)
     return parser
 
 

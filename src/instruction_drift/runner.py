@@ -129,7 +129,9 @@ def _risk_model(pc: PolicyConfig, simulated: bool):
 
 def run_conversation(plan: ConversationPlan, provider: BaseProvider, store: RunStore,
                      cfg: ExperimentConfig, policy: Policy | None = None, risk_model=None,
-                     log_plan: bool = True) -> dict:
+                     log_plan: bool = True, on_exchange=None) -> dict:
+    """`on_exchange`, if given, is called after each exchange with what happened in it
+    (used by the live demo; never needed for experiments)."""
     tok = reference_tokenizer()
     policy = policy or make_policy(cfg.policies[0], tok)
     name = policy.name
@@ -281,6 +283,11 @@ def run_conversation(plan: ConversationPlan, provider: BaseProvider, store: RunS
             is_scripted=scripted, source_template_id=plan.spec.template_id, policy_name=name))
         store.append_many("conversations", turns)
         realized.extend(turns)
+        if on_exchange:
+            on_exchange({"exchange": ex, "decision": d, "risks": risks, "reply": reply,
+                         "compliance": records if ex.is_checkpoint else [],
+                         "prompt_tokens": prompt_tokens if ex.is_checkpoint else None,
+                         "registry": reg})
     return stats
 
 
