@@ -6,7 +6,7 @@ __pycache__/
 .env
 
 # Experiment outputs: raw runs are large and preserved locally, not in git.
-data/
-results/
+/data/
+/results/
 artifacts/
-models/
+/models/
