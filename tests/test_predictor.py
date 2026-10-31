@@ -121,3 +121,15 @@ def test_grouped_bootstrap_resamples_groups():
     one_group = grouped_bootstrap_ci(y, p, np.zeros(100), n_boot=20)
     assert one_group["brier"][0] == pytest.approx(one_group["brier"][1])
     assert isinstance(pd.Series(p).mean(), float)
+
+
+def test_predictor_refuses_other_library_versions(trained, tmp_path):
+    import shutil
+    _, models, _ = trained
+    dst = tmp_path / "m"
+    shutil.copytree(models / "logreg", dst)
+    meta = json.loads((dst / "metadata.json").read_text())
+    meta["library_versions"]["scikit-learn"] = "0.0.1"
+    (dst / "metadata.json").write_text(json.dumps(meta))
+    with pytest.raises(RuntimeError, match="library versions"):
+        Predictor(dst)

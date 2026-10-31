@@ -297,9 +297,14 @@ def train(dataset_dir: Path, out_dir: Path, *, models=MODELS, seed: int = 0,
 class Predictor:
     def __init__(self, model_dir: Path):
         self.dir = Path(model_dir)
+        self.meta = json.loads((self.dir / "metadata.json").read_text(encoding="utf-8"))
+        # A pickled model can load silently wrong under another library version.
+        trained, now = self.meta["library_versions"], _versions()
+        bad = {k: (trained[k], now[k]) for k in ("scikit-learn", "xgboost") if trained[k] != now[k]}
+        if bad:
+            raise RuntimeError(f"library versions differ from training (trained, installed): {bad}")
         art = joblib.load(self.dir / "model.joblib")
         self.model, self.cal, self.threshold = art["model"], art["calibrator"], art["threshold"]
-        self.meta = json.loads((self.dir / "metadata.json").read_text(encoding="utf-8"))
         if art["feature_columns"] != FEATURE_COLUMNS:
             raise ValueError("model was trained on a different feature list")
 

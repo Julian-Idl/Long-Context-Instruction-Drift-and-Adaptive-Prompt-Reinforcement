@@ -94,6 +94,8 @@ def main() -> None:
 
     # 2. Package and pinned corpus (the config's corpus_sha256 is checked at plan time).
     sh(f"pip install -q -e {REPO}")
+    # Same versions the committed predictor was trained with (Predictor refuses others).
+    sh("pip install -q scikit-learn==1.9.1 xgboost==3.2.0")
     if not (REPO / "data/corpus/wikitext103_test.jsonl").exists():
         sh("python scripts/fetch_corpus.py > /dev/null", cwd=REPO)
 
